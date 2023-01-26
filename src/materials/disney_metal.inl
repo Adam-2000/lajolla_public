@@ -13,8 +13,8 @@ Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
     }
     // Homework 1: implement this!
     Vector3 h = normalize(dir_in + dir_out);
-    auto h_out_abs = fmax(dot(h, dir_out), Real(0));
-    auto n_in_abs = fmax(dot(frame.n, dir_in), Real(0));
+    auto h_out_abs = fabs(dot(h, dir_out));
+    auto n_in_abs = fabs(dot(frame.n, dir_in));
 
     Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
     Real roughness = eval(bsdf.roughness, vertex.uv, vertex.uv_screen_size, texture_pool);
@@ -80,7 +80,6 @@ Real pdf_sample_bsdf_op::operator()(const DisneyMetal &bsdf) const {
     Real D = GTR2(n_dot_h, roughness);
     // (4 * cos_theta_v) is the Jacobian of the reflectiokn
     Real spec_prob = (G * D) / (4 * n_dot_in);
-    // For the diffuse lobe, we importance sample cos_theta_out
     return spec_prob;
 }
 
