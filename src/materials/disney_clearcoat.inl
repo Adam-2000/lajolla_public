@@ -4,8 +4,14 @@ inline Real GTR1(Real n_dot_h, Real a) {
         return c_INVPI;
     }
     Real a2 = a * a;
-    return (a2 - Real(1)) / (c_PI * log(a2) * (Real(1) + (a2 - Real(1)) * n_dot_h * n_dot_h));
+    return (a2 - Real(1)) / (c_PI * log2(a2) * (Real(1) + (a2 - Real(1)) * n_dot_h * n_dot_h));
 }
+
+// inline Real SeparableSmithGGXG1(Real n_dot_omega, float a) {
+//     float a2 = a * a;
+//     return Real(2) / (Real(1) + sqrt(a2 + (1 - a2) * n_dot_omega * n_dot_omega));
+// }
+
 Spectrum eval_op::operator()(const DisneyClearcoat &bsdf) const {
     if (dot(vertex.geometric_normal, dir_in) < 0 ||
             dot(vertex.geometric_normal, dir_out) < 0) {
@@ -28,9 +34,9 @@ Spectrum eval_op::operator()(const DisneyClearcoat &bsdf) const {
     Real r_0 = (eta - 1) * (eta - 1) / ((eta + 1) * (eta + 1));
     Real F_c = schlick_fresnel(r_0, h_out_abs);
 
-    Vector3 h_l = to_local(frame, h);
-    Real alpha_g = (Real(1) - clearcoat_gloss) * .1 + clearcoat_gloss * .001;
-    Real D_c = GTR1(h_l.z, alpha_g);
+    // Vector3 h_l = to_local(frame, h);
+    Real alpha_g = fmax((Real(1) - clearcoat_gloss) * .1 + clearcoat_gloss * .001, 0.0001);
+    Real D_c = GTR1(dot(frame.n, h), alpha_g);
 
     Vector3 omega_l_in = to_local(frame, dir_in);
     Vector3 omega_l_out = to_local(frame, dir_out);
@@ -39,6 +45,7 @@ Spectrum eval_op::operator()(const DisneyClearcoat &bsdf) const {
     Real lambda_out = (sqrt(1 + (omega_l_out.x * omega_l_out.x * .25 * .25 + omega_l_out.y * omega_l_out.y * .25 * .25) /
                         (omega_l_out.z * omega_l_out.z)) - 1) / Real(2);
     Real G_c = Real(1) / ((1 + lambda_in) * (1 + lambda_out));
+    // Real G_c = SeparableSmithGGXG1(omega_l_in.z, 0.25) * SeparableSmithGGXG1(omega_l_out.z, 0.25);
     
     return make_const_spectrum(F_c * D_c * G_c / (4 * n_in_abs));
 }
@@ -58,6 +65,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyClearcoat &bsdf) const {
     Vector3 half_vector = normalize(dir_in + dir_out);
     Real h_dot_out = dot(half_vector, dir_out);
     Real n_dot_out = dot(frame.n, dir_out);
+    // Real n_dot_in = dot(frame.n, dir_in);
     Real n_dot_h = dot(frame.n, half_vector);
     if (n_dot_out <= 0 || n_dot_h <= 0) {
         return 0;
@@ -71,6 +79,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyClearcoat &bsdf) const {
     Real D = GTR1(n_dot_h, alpha);
     // (4 * cos_theta_v) is the Jacobian of the reflectiokn
     Real spec_prob = (D * n_dot_h) / (4 * h_dot_out);
+    // Real spec_prob = D / (4 * h_dot_out);
     return spec_prob;
 }
 

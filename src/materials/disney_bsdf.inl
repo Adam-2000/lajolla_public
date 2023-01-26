@@ -140,21 +140,27 @@ std::optional<BSDFSampleRecord>
     Real weight_total = weight_diffuse + weight_metal + weight_glass + weight_clearcoat;
     
     Real rnd = rnd_param_w;
-    Real select_diffuse = weight_diffuse / weight_total;
+    Real select_glass = weight_glass / weight_total;
+    Real select_diffuse = weight_diffuse / weight_total + select_glass;
     Real select_metal = weight_metal / weight_total + select_diffuse;
-    Real select_clearcoat = weight_clearcoat / weight_total + select_metal;
+    // Real rnd = rnd_param_w * weight_total / weight_glass;
+    // Real select_glass = Real(1);
+    // Real select_diffuse = weight_diffuse / weight_glass + select_glass;
+    // Real select_metal = weight_metal / weight_glass + select_diffuse;
 
+    if (rnd <= select_glass) {
+        // rnd_param_w = rnd * weight_total / weight_glass;
+        // return operator()(DisneyGlass{bsdf.base_color, bsdf.roughness, bsdf.anisotropic, bsdf.eta});
+        return sample_bsdf(DisneyGlass{bsdf.base_color, bsdf.roughness, bsdf.anisotropic, bsdf.eta},
+                            dir_in, vertex, texture_pool, rnd_param_uv, rnd * weight_total / weight_glass, dir);
+    }
     if (rnd <= select_diffuse) {
         return operator()(DisneyDiffuse{bsdf.base_color, bsdf.roughness, bsdf.subsurface});
     } 
     if (rnd <= select_metal) {
         return operator()(DisneyMetal{bsdf.base_color, bsdf.roughness, bsdf.anisotropic});
     }
-    if (rnd <= select_clearcoat) {
-        return operator()(DisneyClearcoat{bsdf.clearcoat_gloss});
-    }
-    // rnd_param_w = rnd_param_w / weight_glass;
-    return operator()(DisneyGlass{bsdf.base_color, bsdf.roughness, bsdf.anisotropic, bsdf.eta});
+    return operator()(DisneyClearcoat{bsdf.clearcoat_gloss});
     
 }
 
