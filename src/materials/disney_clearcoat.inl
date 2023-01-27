@@ -79,7 +79,6 @@ Real pdf_sample_bsdf_op::operator()(const DisneyClearcoat &bsdf) const {
     Real D = GTR1(n_dot_h, alpha);
     // (4 * cos_theta_v) is the Jacobian of the reflectiokn
     Real spec_prob = (D * n_dot_h) / (4 * h_dot_out);
-    // Real spec_prob = D / (4 * h_dot_out);
     return spec_prob;
 }
 
@@ -106,9 +105,13 @@ std::optional<BSDFSampleRecord>
     Real h_l_y = sin_h_elevation * sin(h_azimuth);
     Real h_l_z = cos_h_elevation;
 
+    Vector3 micro_normal = to_world(frame, Vector3(h_l_x, h_l_y, h_l_z));
+    // Reflect over the world space normal
+    Vector3 reflected = normalize(-dir_in + 2 * dot(dir_in, micro_normal) * micro_normal);
     return BSDFSampleRecord{
-        to_world(frame, Vector3(h_l_x, h_l_y, h_l_z)),
-        Real(0) /* eta */, alpha /* roughness */};
+        reflected,
+        Real(0) /* eta */, alpha /* roughness */
+    };
 }
 
 TextureSpectrum get_texture_op::operator()(const DisneyClearcoat &bsdf) const {

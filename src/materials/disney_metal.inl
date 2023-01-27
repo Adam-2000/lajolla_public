@@ -14,7 +14,7 @@ Spectrum eval_op::operator()(const DisneyMetal &bsdf) const {
     // Homework 1: implement this!
     Vector3 h = normalize(dir_in + dir_out);
     auto h_out_abs = fabs(dot(h, dir_out));
-    auto n_in_abs = fabs(dot(frame.n, dir_in));
+    auto n_in_abs = fmax(0.000001, dot(frame.n, dir_in));
 
     Spectrum base_color = eval(bsdf.base_color, vertex.uv, vertex.uv_screen_size, texture_pool);
     Real roughness = eval(bsdf.roughness, vertex.uv, vertex.uv_screen_size, texture_pool);
