@@ -3,10 +3,12 @@
 
 inline Vector3 sample_cos_hemisphere(const Vector2 &rnd_param) {
     Real phi = c_TWOPI * rnd_param[0];
-    Real tmp = sqrt(std::clamp(1 - rnd_param[1], Real(0), Real(1)));
+    Real x = rnd_param[1];
+    // x = std::clamp(x, 0.1, 0.9);
+    Real tmp = sqrt(1 - x);
     return normalize(Vector3{
         cos(phi) * tmp, sin(phi) * tmp,
-        sqrt(std::clamp(rnd_param[1], Real(0.00001), Real(1)))
+        sqrt(x)
     });
 }
 

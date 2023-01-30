@@ -33,7 +33,7 @@
 
 # CMake
 build/
-
+output/
 # Embree binaries
 !embree/bin/*
 !embree/lib-linux/*

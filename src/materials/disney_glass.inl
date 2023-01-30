@@ -49,6 +49,8 @@ Spectrum eval_op::operator()(const DisneyGlass &bsdf) const {
     Real n_dot_in_abs = fabs(dot(frame.n, dir_in));
     // Real F_g = fresnel_dielectric(h_dot_in_abs, h_dot_out_abs, eta);
     Real F_g = fresnel_dielectric(h_dot_in, eta);
+    // Real F_0 = (eta - 1) * (eta - 1) / ((eta + 1) * (eta + 1));
+    // Real F_g = schlick_fresnel(F_0, dot(frame.n, dir_in));
 
     Real aspect = sqrt(Real(1) - .9 * anisotropic);
     const Real alpha_min = 0.0001;
@@ -121,6 +123,8 @@ Real pdf_sample_bsdf_op::operator()(const DisneyGlass &bsdf) const {
     // so PDF ~ F * D * G_in for reflection, PDF ~ (1 - F) * D * G_in for refraction.
     Real h_dot_in = dot(half_vector, dir_in);
     Real F = fresnel_dielectric(h_dot_in, eta);
+    // Real F_0 = (eta - 1) * (eta - 1) / ((eta + 1) * (eta + 1));
+    // Real F = schlick_fresnel(F_0, dot(frame.n, dir_in));
     Real D = GTR2(dot(half_vector, frame.n), roughness);
     Real G_in = smith_masking_gtr2(to_local(frame, dir_in), roughness);
     if (reflect) {
@@ -162,6 +166,8 @@ std::optional<BSDFSampleRecord>
     // We do this using the Fresnel term.
     Real h_dot_in = dot(half_vector, dir_in);
     Real F = fresnel_dielectric(h_dot_in, eta);
+    // Real F_0 = (eta - 1) * (eta - 1) / ((eta + 1) * (eta + 1));
+    // Real F = schlick_fresnel(F_0, dot(frame.n, dir_in));
 
     if (rnd_param_w <= F) {
         // Reflection

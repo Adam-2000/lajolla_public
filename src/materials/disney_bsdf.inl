@@ -40,7 +40,7 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
             // Homework 1: implement this!
             Vector3 h = normalize(dir_in + dir_out);
             auto h_out = dot(h, dir_out);
-            auto n_in_abs = fabs(dot(frame.n, dir_in));
+            auto n_in_abs = fmax(0.001, dot(frame.n, dir_in));
 
             Spectrum F_m = schlick_fresnel(C_0, h_out);
 
@@ -51,8 +51,11 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
             Real alpha_y = fmax(alpha_min, roughness * roughness * aspect);
             Real a_y_2 = alpha_y * alpha_y;
             Vector3 h_l = to_local(frame, h);
+            // h_l = normalize(Vector3(h_l[0], h_l[1], 0.1 * h_l[2]));
             Real D_m_idx = h_l.x * h_l.x / a_x_2 + h_l.y * h_l.y / a_y_2 + h_l.z * h_l.z;
             Real D_m = Real(1) / (c_PI * alpha_x * alpha_y * D_m_idx * D_m_idx);
+            // Real D_m = GTR2(fmin(fmax(h_l.z,0.1),0.9), roughness);
+            // Real D_m = GTR2(fmin(h_l.z, 0.99), roughness);
 
             Vector3 omega_l_in = to_local(frame, dir_in);
             Vector3 omega_l_out = to_local(frame, dir_out);
@@ -63,6 +66,9 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
             Real G_m = Real(1) / ((1 + lambda_in) * (1 + lambda_out));
             
             f_metal = F_m * D_m * G_m / (4 * n_in_abs);
+            // f_metal = F_m * G_m / (4 * n_in_abs);
+            // f_metal = Vector3(fmin(0.01, f_metal[0]), fmin(0.01, f_metal[1]), fmin(0.01, f_metal[2]));
+            // f_metal = D_m * f_metal;
         }
     } else {
         f_diffuse = make_zero_spectrum();
@@ -72,11 +78,11 @@ Spectrum eval_op::operator()(const DisneyBSDF &bsdf) const {
     }
     f_glass = operator()(DisneyGlass{bsdf.base_color, bsdf.roughness, bsdf.anisotropic, bsdf.eta});
     
-    return (1 - specular_transmission) * (1 - metallic) * f_diffuse +
-            (1 - metallic) * sheen * f_sheen +
-            (1 - specular_transmission * (1- metallic)) * f_metal + 
+    return (1.0 - specular_transmission) * (1. - metallic) * f_diffuse +
+            (1.0 - metallic) * sheen * f_sheen +
+            (1. - specular_transmission * (1. - metallic)) * f_metal + 
             .25 * clearcoat * f_clearcoat +
-            (1 - metallic) * specular_transmission * f_glass;
+            (1. - metallic) * specular_transmission * f_glass;
 }
 
 Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
@@ -98,14 +104,15 @@ Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
     Real weight_glass = 0;
     Real weight_clearcoat = 0;
     if (reflect) {
-        weight_diffuse = (1 - metallic) * (1 - specular_transmission);
-        weight_metal = (1 - specular_transmission * (1 - metallic));
+        weight_diffuse = (1. - metallic) * (1. - specular_transmission);
+        weight_metal = 1. - specular_transmission * (1. - metallic);
         weight_clearcoat = .25 * clearcoat;
     }
-    weight_glass = (1 - metallic) * specular_transmission;
+    weight_glass = (1. - metallic) * specular_transmission;
     Real weight_total = weight_diffuse + weight_metal + weight_glass + weight_clearcoat;
-    if (weight_total < 0.00001) {
-        return 0;
+    // Real weight_total = weight_metal;
+    if (weight_total < 0.001) {
+        return 1;
     }
     Real p_diffuse = operator()(DisneyDiffuse{bsdf.base_color, bsdf.roughness, bsdf.subsurface});
     Real p_glass = operator()(DisneyGlass{bsdf.base_color, bsdf.roughness, bsdf.anisotropic, bsdf.eta});
@@ -117,6 +124,7 @@ Real pdf_sample_bsdf_op::operator()(const DisneyBSDF &bsdf) const {
             p_glass * weight_glass +
             p_clearcoat * weight_clearcoat +
             p_metal * weight_metal) / weight_total;
+    // return (p_metal * weight_metal) / weight_total;
 }
 
 std::optional<BSDFSampleRecord>
@@ -135,26 +143,23 @@ std::optional<BSDFSampleRecord>
     
     Real weight_diffuse = 0;
     Real weight_metal = 0;
-    Real weight_glass = (1 - metallic) * specular_transmission;
+    Real weight_glass = 0;
     Real weight_clearcoat = 0;
     if (reflect) {
-        weight_diffuse = (1 - metallic) * (1 - specular_transmission);
-        weight_metal = (1 - specular_transmission * (1 - metallic));
+        weight_diffuse = (1. - metallic) * (1. - specular_transmission);
+        weight_metal = (1. - specular_transmission * (1. - metallic));
         weight_clearcoat = .25 * clearcoat;
     }
+    weight_glass = (1. - metallic) * specular_transmission;
     Real weight_total = weight_diffuse + weight_metal + weight_glass + weight_clearcoat;
-    const Real threshold = 0.00001;
+    const Real threshold = 0.001;
     if (weight_total < threshold) {
         return {};
     }
     Real rnd = rnd_param_w;
     Real select_glass = weight_glass / weight_total;
-    Real select_diffuse = weight_diffuse / weight_total + select_glass;
-    Real select_metal = weight_metal / weight_total + select_diffuse;
-    // Real rnd = rnd_param_w * weight_total / weight_glass;
-    // Real select_glass = Real(1);
-    // Real select_diffuse = weight_diffuse / weight_glass + select_glass;
-    // Real select_metal = weight_metal / weight_glass + select_diffuse;
+    Real select_metal = weight_metal / weight_total + select_glass;
+    Real select_clearcoat = weight_clearcoat / weight_total + select_metal;
     
     if (rnd <= select_glass) {
         // rnd_param_w = rnd * weight_total / weight_glass;
@@ -164,17 +169,21 @@ std::optional<BSDFSampleRecord>
                             dir_in, vertex, texture_pool, rnd_param_uv, rnd * weight_total / weight_glass, dir);
         }
     }
-    if (rnd <= select_diffuse) {
-        if (weight_diffuse >= threshold) {
-            return operator()(DisneyDiffuse{bsdf.base_color, bsdf.roughness, bsdf.subsurface});
-        }
-    } 
     if (rnd <= select_metal) {
         if (weight_metal >= threshold) {
             return operator()(DisneyMetal{bsdf.base_color, bsdf.roughness, bsdf.anisotropic});
         }
     }
-    return operator()(DisneyClearcoat{bsdf.clearcoat_gloss});
+    if (rnd <= select_clearcoat) {
+        if (weight_clearcoat >= threshold) {
+            return operator()(DisneyClearcoat{bsdf.clearcoat_gloss});
+        }
+    } 
+    // if (rnd <= select_diffuse) {
+    if (weight_diffuse >= threshold) {
+        return operator()(DisneyDiffuse{bsdf.base_color, bsdf.roughness, bsdf.subsurface});
+    }
+    return {};
     
 }
 
