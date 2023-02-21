@@ -49,12 +49,12 @@
 		</transform>
 
 		<sampler type="independent">
-			<integer name="sampleCount" value="64"/>
+			<integer name="sampleCount" value="8"/>
 		</sampler>
 
 		<film type="hdrfilm">
-			<integer name="height" value="576"/>
-			<integer name="width" value="768"/>
+			<integer name="height" value="57"/>
+			<integer name="width" value="76"/>
 
 			<rfilter type="gaussian"/>
 		</film>
