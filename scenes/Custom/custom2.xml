@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<scene version="0.5.0">
+	<default name="spp" value="256"/>
+	<default name="resx" value="512"/>
+	<default name="resy" value="512"/>
+
+	<integrator type="volpath">
+		<integer name="maxDepth" value="6"/>
+		<integer name="version" value="4"/>
+	</integrator>
+	<medium type="homogeneous" id="medium_out">
+		<rgb name="sigmaA" value="1 0.5 0.4"/>
+		<rgb name="sigmaS" value="1 0.6 1.2"/>
+		<float name="scale" value=".05"/>
+	</medium>
+
+	<bsdf type="roughdielectric" id="glass">
+		<float name="intIOR" value="1.33"/>
+		<float name="alpha" value="0.1"/>
+		<rgb name="specularReflectance" value="1"/>
+		<rgb name="specularTransmittance" value="1"/>
+	</bsdf>
+
+	<medium type="homogeneous" id="medium_in">
+		<rgb name="sigmaA" value="0.4 0.3 0.1"/>
+		<rgb name="sigmaS" value="3.0 1.0 1.0"/>
+		<float name="scale" value="0.25"/>
+	</medium>
+
+	<medium type="homogeneous" id="medium_in2">
+		<rgb name="sigmaA" value="0.4 0.1 0.3"/>
+		<rgb name="sigmaS" value="1.0 2.0 1.0"/>
+		<float name="scale" value="1.00"/>
+	</medium>
+
+	<medium type="homogeneous" id="medium">
+		<rgb name="sigmaA" value="1.0 1.0 1.0"/>
+		<rgb name="sigmaS" value="0.5 0.5 0.5"/>
+		<float name="scale" value="200"/>
+
+<!-- 		<phase type="hg">
+			<float name="g" value="0.5"/>
+		</phase> -->
+	</medium>
+
+	<shape type="rectangle">
+		<boolean name="flip_normals" value="true"/>
+		<transform name="to_world">
+			<matrix value="-0.014543 -0.038555 0.283197 4.076245 -0.002759 0.030226 0.397336 5.903862 -0.047759 0.009994 -0.109196 -1.005454 0.000000 0.000000 0.000000 1.000000"/>
+		</transform>
+		<emitter type="area">
+			<rgb value="25000.000000 25000.000000 25000.000000" name="radiance"/>
+		</emitter>
+		<bsdf type="diffuse">
+			<rgb name="reflectance" value="0.0 0.0 0.0"/>
+		</bsdf>
+	</shape>
+
+	<shape type="ply">
+		<string name="filename" value="meshes/Cube.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<emitter type="area">
+			<rgb name="radiance" value=".5 1 .1"/>
+		</emitter>
+		<ref name="exterior" id="medium_out"/>
+		<bsdf type="diffuse">
+			<rgb name="reflectance" value="0.0 0.0 0.0"/>
+		</bsdf>
+	</shape>
+	<!-- <shape type="ply">
+		<string name="filename" value="meshes/Cube_001.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref id="default-bsdf" name="bsdf"/>
+		<ref name="exterior" id="medium_out"/>
+	</shape> -->
+	<shape type="ply">
+		<string name="filename" value="meshes/Cone.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref name="interior" id="medium_in"/>
+		<ref name="exterior" id="medium_out"/>
+		<ref id="glass"/>
+	</shape>
+	<shape type="ply">
+		<string name="filename" value="meshes/Sphere.ply"/>
+		<boolean name="face_normals" value="true"/>
+		<ref name="interior" id="medium_in2"/>
+		<ref name="exterior" id="medium_out"/>
+		<bsdf type="roughdielectric">
+			<float name="intIOR" value="1.33"/>
+			<!-- <float name="roughness" value="0.316"/> -->
+			<float name="alpha" value="0.1"/>
+			<rgb name="specularReflectance" value="1"/>
+			<rgb name="specularTransmittance" value="1"/>
+		</bsdf>
+	</shape>
+	<sensor type="perspective">
+		<string name="fov_axis" value="x"/>
+		<float name="fov" value="38.631369"/>
+		<float name="principal_point_offset_x" value="0.000000"/>
+		<float name="principal_point_offset_y" value="-0.000000"/>
+		<float name="near_clip" value="0.100000"/>
+		<float name="far_clip" value="100.000000"/>
+		<transform name="to_world">
+			<rotate x="1" angle="-153.5592908827048"/>
+			<rotate y="1" angle="-46.691938147394204"/>
+			<rotate z="1" angle="-179.999991348578"/>
+			<translate value="7.358891 4.958309 6.925791"/>
+		</transform>
+		<sampler type="independent">
+			<integer name="sample_count" value="$spp"/>
+		</sampler>
+		<film type="hdrfilm">
+			<integer name="width" value="$resx"/>
+			<integer name="height" value="$resy"/>
+		</film>
+	</sensor>
+</scene>
+
+	
