@@ -11,7 +11,7 @@
 	</integrator>
 	<medium type="homogeneous" id="medium_out">
 		<rgb name="sigmaA" value="1 0.5 0.4"/>
-		<rgb name="sigmaS" value="1 0.6 1.2"/>
+		<rgb name="sigmaS" value="10 6 12"/>
 		<float name="scale" value=".05"/>
 	</medium>
 

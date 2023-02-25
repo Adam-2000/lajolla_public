@@ -696,45 +696,51 @@ Spectrum vol_path_tracing(const Scene &scene,
         } else {
             Medium medium = scene.media[curr_medium_id];
             Spectrum majorant = get_majorant(medium, ray);
-            Real u = next_pcg32_real<Real>(rng);
-            int channel = min(max(int(floor(u * 3)), 0), 2);
-            Real accum_t = 0;
-            int iteration = 0;
-            while (majorant[channel] > 0 && iteration++ < max_null_collisions) {
-                Real t = -log(1 - next_pcg32_real<Real>(rng)) / majorant[channel];
-                Real dt = t_hit - accum_t;
-                accum_t = min(accum_t + t, t_hit);
-                Spectrum sigma_t = get_sigma_a(medium, ray.org + ray.dir * accum_t) + get_sigma_s(medium, ray.org + ray.dir * accum_t);
-                Spectrum sigma_n = majorant - sigma_t;
-                Spectrum exp_minus_m_t = exp(-majorant * t);
-                Spectrum exp_minus_m_dt = exp(-majorant * dt);
-                Real max_m = max(majorant);
-                if (t < dt) {
-                    Spectrum real_prob = sigma_t / majorant;
-                    if (next_pcg32_real<Real>(rng) < real_prob[channel]) {
-                        scatter = true;
-                        transmittance *= exp_minus_m_t/ max_m;
-                        trans_dir_pdf *= exp_minus_m_t * majorant * real_prob / max_m;
-                        break;
-                    } else {
-                        transmittance *= exp_minus_m_t * sigma_n / max_m;
-                        trans_dir_pdf *= exp_minus_m_t * majorant * (1 - real_prob) / max_m;
-                        trans_nee_pdf *= exp_minus_m_t * majorant / max_m;
-                    }
-                } else {
-                    transmittance *= exp_minus_m_dt;
-                    trans_dir_pdf *= exp_minus_m_dt;
-                    trans_nee_pdf *= exp_minus_m_dt;
+            if (max(majorant) <= 0) {
+                if (!vertex_.has_value()) {
                     break;
                 }
+                next_org = ray.org + t_hit * ray.dir;
+            } else {
+                Real u = next_pcg32_real<Real>(rng);
+                int channel = min(max(int(floor(u * 3)), 0), 2);
+                Real accum_t = 0;
+                int iteration = 0;
+                while (majorant[channel] > 0 && iteration++ < max_null_collisions) {
+                    Real t = -log(1 - next_pcg32_real<Real>(rng)) / majorant[channel];
+                    Real dt = t_hit - accum_t;
+                    accum_t = min(accum_t + t, t_hit);
+                    Spectrum sigma_t = get_sigma_a(medium, ray.org + ray.dir * accum_t) + get_sigma_s(medium, ray.org + ray.dir * accum_t);
+                    Spectrum sigma_n = majorant - sigma_t;
+                    Spectrum exp_minus_m_t = exp(-majorant * t);
+                    Spectrum exp_minus_m_dt = exp(-majorant * dt);
+                    Real max_m = max(majorant);
+                    if (t < dt) {
+                        Spectrum real_prob = sigma_t / majorant;
+                        if (next_pcg32_real<Real>(rng) < real_prob[channel]) {
+                            scatter = true;
+                            transmittance *= exp_minus_m_t/ max_m;
+                            trans_dir_pdf *= exp_minus_m_t * majorant * real_prob / max_m;
+                            break;
+                        } else {
+                            transmittance *= exp_minus_m_t * sigma_n / max_m;
+                            trans_dir_pdf *= exp_minus_m_t * majorant * (1 - real_prob) / max_m;
+                            trans_nee_pdf *= exp_minus_m_t * majorant / max_m;
+                        }
+                    } else {
+                        transmittance *= exp_minus_m_dt;
+                        trans_dir_pdf *= exp_minus_m_dt;
+                        trans_nee_pdf *= exp_minus_m_dt;
+                        break;
+                    }
+                }
+                next_org = ray.org + accum_t * ray.dir;
+                current_path_throughput *= transmittance / average(trans_dir_pdf);
+                // current_path_throughput *= transmittance / trans_dir_pdf;
+                multi_trans_pdf *= trans_dir_pdf;
+                multi_trans_pdf_nee *= trans_nee_pdf;
             }
-            next_org = ray.org + accum_t * ray.dir;
-            current_path_throughput *= transmittance / average(trans_dir_pdf);
-            // current_path_throughput *= transmittance / trans_dir_pdf;
-            multi_trans_pdf *= trans_dir_pdf;
-            multi_trans_pdf_nee *= trans_nee_pdf;
         }
-
         if (!scatter && is_light(scene.shapes[vertex_->shape_id])) {
             Spectrum L = emission(*vertex_, dir_view, scene);
             Spectrum w = make_const_spectrum(1);
@@ -802,33 +808,35 @@ Spectrum vol_path_tracing(const Scene &scene,
                 }
                 if (shadow_medium_id != -1) {
                     Spectrum majorant = get_majorant(scene.media[shadow_medium_id], shadow_ray);
-                    Medium medium = scene.media[shadow_medium_id];
-                    Real u = next_pcg32_real<Real>(rng);
-                    Real channel = min(max(int(floor(u * 3)), 0), 2);
-                    Real accum_t = 0;
-                    int iteration = 0;
-                    while (majorant[channel] > 0 && iteration++ < max_null_collisions) {
-                        Real t = -log(1 - next_pcg32_real<Real>(rng)) / majorant[channel];
-                        Real dt = next_t - accum_t;
-                        accum_t = min(accum_t + t, next_t);
-                        Spectrum sigma_t = get_sigma_a(medium, shadow_ray.org + shadow_ray.dir * accum_t) + get_sigma_s(medium, shadow_ray.org + shadow_ray.dir * accum_t);
-                        Spectrum sigma_n = majorant - sigma_t;
-                        Spectrum exp_minus_m_t = exp(-majorant * t);
-                        Spectrum exp_minus_m_dt = exp(-majorant * dt);
-                        Real max_m = max(majorant);
-                        if (t < dt) {
-                            T_light *= exp_minus_m_t * sigma_n / max_m;
-                            p_trans_nee *= exp_minus_m_t * majorant / max_m;
-                            Spectrum real_prob = sigma_t / majorant;
-                            p_trans_dir *= exp_minus_m_t * majorant * (1 - real_prob) / max_m;
-                            if (max(T_light) <= 0) {
+                    if (max(majorant) > 0) {
+                        Medium medium = scene.media[shadow_medium_id];
+                        Real u = next_pcg32_real<Real>(rng);
+                        Real channel = min(max(int(floor(u * 3)), 0), 2);
+                        Real accum_t = 0;
+                        int iteration = 0;
+                        while (majorant[channel] > 0 && iteration++ < max_null_collisions) {
+                            Real t = -log(1 - next_pcg32_real<Real>(rng)) / majorant[channel];
+                            Real dt = next_t - accum_t;
+                            accum_t = min(accum_t + t, next_t);
+                            Spectrum sigma_t = get_sigma_a(medium, shadow_ray.org + shadow_ray.dir * accum_t) + get_sigma_s(medium, shadow_ray.org + shadow_ray.dir * accum_t);
+                            Spectrum sigma_n = majorant - sigma_t;
+                            Spectrum exp_minus_m_t = exp(-majorant * t);
+                            Spectrum exp_minus_m_dt = exp(-majorant * dt);
+                            Real max_m = max(majorant);
+                            if (t < dt) {
+                                T_light *= exp_minus_m_t * sigma_n / max_m;
+                                p_trans_nee *= exp_minus_m_t * majorant / max_m;
+                                Spectrum real_prob = sigma_t / majorant;
+                                p_trans_dir *= exp_minus_m_t * majorant * (1 - real_prob) / max_m;
+                                if (max(T_light) <= 0) {
+                                    break;
+                                }
+                            } else {
+                                T_light *= exp_minus_m_dt;
+                                p_trans_dir *= exp_minus_m_dt;
+                                p_trans_nee *= exp_minus_m_dt;
                                 break;
                             }
-                        } else {
-                            T_light *= exp_minus_m_dt;
-                            p_trans_dir *= exp_minus_m_dt;
-                            p_trans_nee *= exp_minus_m_dt;
-                            break;
                         }
                     }
                 }
