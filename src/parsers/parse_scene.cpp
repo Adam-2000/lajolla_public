@@ -1067,6 +1067,37 @@ std::tuple<std::string /* ID */, Material> parse_bsdf(
             }
         }
         return std::make_tuple(id, DisneyGlass{base_color, roughness, anisotropic, eta});
+    } else if (type == "irid" || type == "thin_film" ) {
+        Texture<Spectrum> base_color =
+            make_constant_spectrum_texture(fromRGB(Vector3{0.5, 0.5, 0.5}));
+        Texture<Real> roughness =
+            make_constant_float_texture(Real(0.5));
+        Texture<Real> anisotropic =
+            make_constant_float_texture(Real(0.0));
+        Real filmEta = 2;
+        Real height = 5000;
+        for (auto child : node.children()) {
+            std::string name = child.attribute("name").value();
+            if (name == "baseColor" || name == "base_color") {
+                base_color = parse_spectrum_texture(
+                    child, texture_map, texture_pool, default_map);
+            } else if (name == "roughness") {
+                roughness = parse_float_texture(
+                    child, texture_map, texture_pool, default_map);
+            } else if (name == "anisotropic") {
+                anisotropic = parse_float_texture(
+                    child, texture_map, texture_pool, default_map);
+            } else if (name == "filmEta" || name == "film_eta") {
+                filmEta = parse_float(child.attribute("value").value(), default_map);
+            } else if (name == "height") {
+                height = parse_float(child.attribute("value").value(), default_map);
+            }
+        }
+        // if (type == "irid") {
+        //     return std::make_tuple(id, IridescentMicrofacet{filmEta, height, base_color, roughness, anisotropic});
+        // }
+        // return std::make_tuple(id, ThinFilm{filmEta, height, base_color, roughness, anisotropic});
+        return std::make_tuple(id, IridescentMicrofacet{filmEta, height, base_color, roughness, anisotropic});
     } else if (type == "disneyclearcoat") {
         Texture<Real> clearcoat_gloss = make_constant_float_texture(Real(1.0));
         for (auto child : node.children()) {

@@ -13,10 +13,42 @@
 			<translate z="0.01"/>
 		</transform>
 
-		<bsdf type="disneymetal">
-			<!-- <rgb name="baseColor" value="0.82 0.67 0.16"/> -->
+		<bsdf type="thin_film">
+		<rgb name="baseColor" value="1 1 1"/>
+		<float name="roughness" value="0.001"/>
+		<float name="anisotropic" value="0.8"/>
+
+         <!-- `eta` and `k` specify the complex IOR of the base layer -->
+         <!-- <float name="eta"  value="1.33" /> -->
+         <!-- <float name="k"    value="0.00" /> -->
+
+         <!-- `filmEta` and `height` specify the IOR of the film and
+              its thickness in nanometers -->
+         <float name="filmEta"  value="2" />
+         <float name="height"   value="550" />
+
+		</bsdf>
+	</shape>
+	<shape type="serialized">
+		<string name="filename" value="../matpreview/matpreview.serialized"/>
+		<integer name="shapeIndex" value="2"/>
+		<transform name="toWorld">
+			<matrix value="0.614046 0.614047 0 -1.78814e-07 -0.614047 0.614046 0 2.08616e-07 0 0 0.868393 1.02569 0 0 0 1"/>
+			<translate z="0.01"/>
+		</transform>
+
+		<bsdf type="irid">
+			<rgb name="baseColor" value="0.82 0.67 0.16"/>
 			<float name="roughness" value="0.01"/>
 			<float name="anisotropic" value="0.8"/>
+			         <!-- `eta` and `k` specify the complex IOR of the base layer -->
+			<rgb name="eta"  value="3" />
+			<rgb name="k"    value="0.00" />
+
+			<!-- `filmEta` and `height` specify the IOR of the film and
+				its thickness in nanometers -->
+			<rgb name="filmEta"  value="2" />
+			<rgb name="height"   value="5000" />
 		</bsdf>
 	</shape>
 

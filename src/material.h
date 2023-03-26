@@ -68,6 +68,23 @@ struct DisneyGlass {
     Real eta; // internal IOR / externalIOR
 };
 
+struct IridescentMicrofacet {
+    Real filmEta;
+    Real height;
+
+    Texture<Spectrum> base_color;
+    Texture<Real> roughness;
+    Texture<Real> anisotropic;
+};
+
+// struct ThinFilm {
+//     Real filmEta;
+//     Real height;
+
+//     Texture<Spectrum> base_color;
+//     Texture<Real> roughness;
+//     Texture<Real> anisotropic;
+// };
 /// For homework 1: the clearcoat component of the Disney BRDF.
 struct DisneyClearcoat {
     Texture<Real> clearcoat_gloss;
@@ -107,7 +124,8 @@ using Material = std::variant<Lambertian,
                               DisneyGlass,
                               DisneyClearcoat,
                               DisneySheen,
-                              DisneyBSDF>;
+                              DisneyBSDF,
+                              IridescentMicrofacet>;
 
 /// We allow non-reciprocal BRDFs, so it's important
 /// to distinguish which direction we are tracing the rays.
