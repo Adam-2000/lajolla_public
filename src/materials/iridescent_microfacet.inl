@@ -40,7 +40,7 @@ Spectrum eval_op::operator()(const IridescentMicrofacet &bsdf) const {
     Real R21 = fresnel_dielectric(h_under_dot_in, 1.0 / filmEta);
     Real T21 = 1 - R21;
     Spectrum R23 = schlick_fresnel(base_color, h_under_dot_in);;
-    Real delta = height * 2 * filmEta * (2 / cos - cos);
+    Real delta = height * 2 * filmEta * cos;
     Real delta_phi_R = delta / WAVELENGTH_R * 2 * c_PI;
     Real delta_phi_G = delta / WAVELENGTH_G * 2 * c_PI;
     Real delta_phi_B = delta / WAVELENGTH_B * 2 * c_PI;

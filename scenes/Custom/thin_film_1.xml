@@ -24,7 +24,7 @@
 
          <!-- `filmEta` and `height` specify the IOR of the film and
               its thickness in nanometers -->
-         <float name="filmEta"  value="2" />
+         <float name="filmEta"  value="1.33" />
          <float name="height"   value="550" />
 
 		</bsdf>
